@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException, Request, File, UploadFile, Form
 from fastapi.middleware.cors import CORSMiddleware
 from vectorDB import query
-from mangum import Mangum
+import uvicorn
 
 app = FastAPI()
 app.add_middleware(
@@ -11,8 +11,6 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
-
-handler = Mangum(app)
 
 @app.get("/")
 async def root():
@@ -56,3 +54,8 @@ async def check(request: Request):
     #     name = text[start:end].strip()
     #     matches.append({ "name": name, "score": score })
     # return matches
+    
+    
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)

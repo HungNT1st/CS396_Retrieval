@@ -90,29 +90,29 @@ def context_query(indices, client, query_text, k = 2):
     
     matches = []
     for rso in res['matches']:
-        name = rso['metadata']['Name']
+        # name = rso['metadata']['Name']
         score = rso['score']
-        print(name, score)
+        # print(name, score)
 
-        nationality_res = indices[1].query(namespace="ns1", id=rso['id'], top_k=1, include_values=True)['matches']
-        mission_res = indices[2].query(namespace="ns1", id=rso['id'], top_k=1, include_values=True)['matches']
-        activities_res = indices[3].query(namespace="ns1", id=rso['id'], top_k=1, include_values=True)['matches']
+        # nationality_res = indices[1].query(namespace="ns1", id=rso['id'], top_k=1, include_values=True)['matches']
+        # mission_res = indices[2].query(namespace="ns1", id=rso['id'], top_k=1, include_values=True)['matches']
+        # activities_res = indices[3].query(namespace="ns1", id=rso['id'], top_k=1, include_values=True)['matches']
         
-        nationality_sim = cosine_similarity(nationality_res[0]['values'], nationality_embeddings)
-        mission_sim = cosine_similarity(mission_res[0]['values'], mission_embeddings)
-        activities_sim = cosine_similarity(activities_res[0]['values'], activities_embeddings)
+        # nationality_sim = cosine_similarity(nationality_res[0]['values'], nationality_embeddings)
+        # mission_sim = cosine_similarity(mission_res[0]['values'], mission_embeddings)
+        # activities_sim = cosine_similarity(activities_res[0]['values'], activities_embeddings)
 
         # explanation = ""
         explanation = get_sim_explanation(client, query_text, rso['metadata'])
         matches.append({
-            "name": name,
+            # "name": name,
             "overall_score": score,
             "explanation": explanation,
-            "contextual_score": {
-                "nationality": nationality_sim,
-                "mission": mission_sim,
-                "activities": activities_sim
-            }
+            # "contextual_score": {
+            #     "nationality": nationality_sim,
+            #     "mission": mission_sim,
+            #     "activities": activities_sim
+            # }
         })
 
     return matches
@@ -122,15 +122,15 @@ def check(query_text, k = 2):
     api_key = os.getenv("PINECONE_API_KEY")
     pc = Pinecone(api_key=api_key)
     index = pc.Index("rso")
-    nationality_index = pc.Index("rso-nationality")
-    mission_index = pc.Index("rso-mission")
-    activities_index = pc.Index("rso-activities")
+    # nationality_index = pc.Index("rso-nationality")
+    # mission_index = pc.Index("rso-mission")
+    # activities_index = pc.Index("rso-activities")
 
     indices = [
         index,
-        nationality_index,
-        mission_index,
-        activities_index
+        # nationality_index,
+        # mission_index,
+        # activities_index
     ]
     
     client = OpenAI(

@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>University Club Similarity Checker</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f4f4f9;
+    }
+    .container {
+      max-width: 600px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #fff;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    form {
+      display: flex;
+      flex-direction: column;
+    }
+    label {
+      margin-top: 10px;
+      font-weight: bold;
+    }
+    input, textarea, button {
+      margin-top: 5px;
+      padding: 10px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      margin-top: 20px;
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    .spinner {
+      display: none;
+      margin: 20px auto;
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #007BFF;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .result {
+      margin-top: 20px;
+      padding: 10px;
+      background: #e9ecef;
+      border-radius: 4px;
+    }
+    .result h3 {
+      margin-bottom: 10px;
+    }
+    .result-item {
+      margin-bottom: 15px;
+      padding: 10px;
+      background: #fff;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    .result-item p {
+      margin: 5px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>University Club Similarity Checker</h1>
+    <form id="clubForm">
+      <label for="name">Proposed Club Name:</label>
+      <input type="text" id="name" name="name" required>
+
+      <label for="categories">Categories (comma-separated):</label>
+      <input type="text" id="categories" name="categories" required>
+
+      <label for="summary">Summary:</label>
+      <textarea id="summary" name="summary" rows="3" required></textarea>
+
+      <label for="description">Description:</label>
+      <textarea id="description" name="description" rows="5" required></textarea>
+
+      <button type="submit">Check Similarity</button>
+    </form>
+
+    <div class="spinner" id="spinner"></div>
+
+    <div id="result" class="result" style="display: none;">
+      <h3>Similarity Results:</h3>
+      <div id="resultList"></div>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('clubForm');
+    const spinner = document.getElementById('spinner');
+    const resultDiv = document.getElementById('result');
+    const resultList = document.getElementById('resultList');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      // Hide result and show spinner
+      resultDiv.style.display = 'none';
+      spinner.style.display = 'block';
+
+      // Clear previous results
+      resultList.innerHTML = '';
+
+      // Collect form data
+      const formData = {
+        name: document.getElementById('name').value,
+        categories: document.getElementById('categories').value,
+        summary: document.getElementById('summary').value,
+        description: document.getElementById('description').value
+      };
+
+      try {
+        // Send POST request to the backend
+        const response = await fetch('http://127.0.0.1:8000/check', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(formData)
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+
+          // Display results
+          data.forEach((item, index) => {
+            const resultItem = document.createElement('div');
+            resultItem.classList.add('result-item');
+            resultItem.innerHTML = `
+              <p><strong>Result ${index + 1}:</strong></p>
+              <p><strong>Overall Score:</strong> ${item.overall_score.toFixed(3)}</p>
+              <p><strong>Explanation:</strong> ${item.explanation}</p>
+            `;
+            resultList.appendChild(resultItem);
+          });
+
+          resultDiv.style.display = 'block';
+        } else {
+          const errorItem = document.createElement('div');
+          errorItem.classList.add('result-item');
+          errorItem.innerHTML = `<p>Error: Unable to fetch similarity results.</p>`;
+          resultList.appendChild(errorItem);
+          resultDiv.style.display = 'block';
+        }
+      } catch (error) {
+        const errorItem = document.createElement('div');
+        errorItem.classList.add('result-item');
+        errorItem.innerHTML = `<p>Error: Unable to connect to the backend.</p>`;
+        resultList.appendChild(errorItem);
+        resultDiv.style.display = 'block';
+      } finally {
+        // Hide spinner
+        spinner.style.display = 'none';
+      }
+    });
+  </script>
+</body>
+</html>
