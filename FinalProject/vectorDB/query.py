@@ -29,28 +29,78 @@ def query(index, client, query, k = 2):
 def cosine_similarity(a, b):
     return np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b))
 
-def get_sim_explanation(client, query_text, target):
+def decompose_query(client, query_text, club_text):
+    """Generate comparison questions between two clubs"""
+    load_dotenv()
+    from langchain.prompts import PromptTemplate
+    from langchain_community.chat_models import ChatOpenAI
+    
+    decompose_prompt = PromptTemplate(
+        template="Compare these two student organizations. Create 3 questions focusing on: "
+                 "1. Mission alignment\n2. Activity similarity\n3. Target audience overlap\n"
+                 "Query Club: {query_club}\n"
+                 "Target Club: {target_club}\n"
+                 "Comparison Questions:",
+        input_variables=["query_club", "target_club"]
+    )
+    
+    llm = ChatOpenAI(model_name="gpt-4o", temperature=0, openai_api_key=os.getenv("OPEN_AI_API_KEY"))
+    decompose_chain = decompose_prompt | llm
+    sub_questions_text = decompose_chain.invoke({
+        "query_club": query_text,
+        "target_club": json.dumps(club_text, indent=2)
+    }).content
+    
+    return [q.strip().lstrip("0123456789.- ") 
+           for q in sub_questions_text.split("\n") if q.strip()]
+
+def get_qa_answer(client, sub_question, target):
+    """Get answer for a single sub-question about target organization"""
     response = client.chat.completions.create(
         model="gpt-4o-mini",
         messages=[
             {
                 "role": "system",
-                "content": "You are a helpful assistant that explains similarities between student organizations."
+                "content": "Explain how this organization addresses the specific question aspect."
             },
             {
                 "role": "user",
                 "content": f"""
-                    Provide a concise yet detailed explanation of why the following student organization is similar to the organization in the given query text. Focus closely on the target students, its nationality and activities. Keep it up to 3 sentences. Do not use markdown format. Just pure text.
-
-                    Query Text: {query_text}
-                    Target Organization:
+                    Question Aspect: {sub_question}
+                    Organization Details:
                     {json.dumps(target, indent=2)}
+                    Provide a focused 1-2 sentence answer using only information from the details.
                     """
             }
         ]
     )
-    explanation = response.choices[0].message.content.strip()
-    return explanation
+    return response.choices[0].message.content.strip()
+
+def combine_answers(client, qa_pairs):
+    """Combine multiple Q&A pairs into final conclusion"""
+    response = client.chat.completions.create(
+        model="gpt-4o-mini",
+        messages=[
+            {
+                "role": "system",
+                "content": "Synthesize answers from multiple aspects into a cohesive comparison."
+            },
+            {
+                "role": "user",
+                "content": f"""
+                    Q&A Pairs:
+                    {json.dumps(qa_pairs, indent=2)}
+                    
+                    Create a final comparative analysis that:
+                    1. Highlights key similarities
+                    2. Notes any important differences
+                    3. Concludes overall compatibility
+                    Keep under 5 sentences.
+                    """
+            }
+        ]
+    )
+    return response.choices[0].message.content.strip()
 
 
 def context_query(indices, client, query_text, k = 2):
@@ -103,11 +153,24 @@ def context_query(indices, client, query_text, k = 2):
         # activities_sim = cosine_similarity(activities_res[0]['values'], activities_embeddings)
 
         # explanation = ""
-        explanation = get_sim_explanation(client, query_text, rso['metadata'])
+        # Generate comparison questions specific to this club pair
+        
+        sub_questions = decompose_query(client, query_text, rso['metadata'])
+        print(sub_questions)
+        
+        # Process each sub-question
+        qa_pairs = []
+        for idx, question in enumerate(sub_questions):
+            if idx % 2 == 1:  
+                answer = get_qa_answer(client, question, rso['metadata'])
+                qa_pairs.append({"question": question, "answer": answer})
+            
+        final_conclusion = combine_answers(client, qa_pairs)
+        
         matches.append({
-            # "name": name,
             "overall_score": score,
-            "explanation": explanation,
+            "final_conclusion": final_conclusion,
+            "qa_pairs": qa_pairs,
             # "contextual_score": {
             #     "nationality": nationality_sim,
             #     "mission": mission_sim,

@@ -154,7 +154,15 @@
             resultItem.innerHTML = `
               <p><strong>Result ${index + 1}:</strong></p>
               <p><strong>Overall Score:</strong> ${item.overall_score.toFixed(3)}</p>
-              <p><strong>Explanation:</strong> ${item.explanation}</p>
+              <p><strong>Explanation:</strong> ${item.final_conclusion}</p>
+              <ul>
+                ${item.qa_pairs.map(qa => `
+                  <li>
+                    <p><strong>Q:</strong> ${qa.question}</p>
+                    <p><strong>A:</strong> ${qa.answer}</p>
+                  </li>
+                `).join('')}
+              </ul>
             `;
             resultList.appendChild(resultItem);
           });

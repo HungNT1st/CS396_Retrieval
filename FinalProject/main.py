@@ -42,8 +42,10 @@ async def check(request: Request):
 
     # Assuming the query function processes the data and returns a result
     query_text = f"NAME: {name} CATEGORIES: {categories} SUMMARY: {summary} DESCRIPTION: {description}"
-    return query.check(query_text, 10)
-
+    res = query.check(query_text, 3)
+    print(res)
+    
+    return res
     # res = query.check(query_text, 10)
     # matches = []
     # for rso in res['matches']:
